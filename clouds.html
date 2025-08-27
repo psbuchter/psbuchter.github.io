@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Clouds — simple canvas</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #eaf6ff; /* very light blue */
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="sky"></canvas>
+
+  <script>
+    const canvas = document.getElementById('sky');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width  = Math.floor(innerWidth  * dpr);
+      canvas.height = Math.floor(innerHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    addEventListener('resize', resizeCanvas, { passive: true });
+    resizeCanvas();
+
+    function drawCloudPath(c) {
+      c.beginPath();
+      c.ellipse(0, 0, 60, 28, 0, 0, Math.PI * 2);
+      c.ellipse(-35, -10, 28, 22, 0, 0, Math.PI * 2);
+      c.ellipse(-5, -22, 32, 26, 0, 0, Math.PI * 2);
+      c.ellipse(35, -8, 26, 20, 0, 0, Math.PI * 2);
+      c.closePath();
+    }
+
+    class Cloud {
+      constructor() {
+        // permanent attributes
+        this.scale = rand(0.6, 1.8);
+        this.speed = rand(12, 60) / 60;        // fixed speed per cloud
+        this.alpha = rand(0.45, 0.8);
+        this.color = 'rgba(255, 247, 153, 1)';
+        this.reset(true);
+      }
+      reset(startOnLeft = false) {
+        const h = innerHeight;
+        this.y = rand(0.1 * h, 0.9 * h);
+        const margin = 150 * this.scale;
+        this.x = startOnLeft ? -margin : rand(-margin, innerWidth + margin);
+      }
+      step() {
+        this.x += this.speed;
+        if (this.x - 150 * this.scale > innerWidth) this.reset(true);
+      }
+      draw(c) {
+        c.save();
+        c.translate(this.x, this.y);
+        c.scale(this.scale, this.scale);
+        c.globalAlpha = this.alpha;
+        c.fillStyle = this.color;
+        drawCloudPath(c);
+        c.fill();
+        c.restore();
+      }
+    }
+
+    let clouds = [];
+    function initClouds() {
+      const count = Math.max(8, Math.floor(innerWidth / 140));
+      clouds = Array.from({ length: count }, () => new Cloud());
+    }
+    initClouds();
+    addEventListener('resize', initClouds, { passive: true });
+
+    function loop() {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      ctx.fillStyle = '#eaf6ff';
+      ctx.fillRect(0, 0, innerWidth, innerHeight);
+      for (const cl of clouds) {
+        cl.draw(ctx);
+        cl.step();
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+  </script>
+</body>
+</html>
