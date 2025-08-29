@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Template Page</title>
+<style>
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    margin: 2rem;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
+  p.description {
+    max-width: 700px;
+    margin-bottom: 1rem;
+  }
+  label {
+    font-weight: 600;
+  }
+  input[type="number"] {
+    margin: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 1rem;
+    width: 100px;
+  }
+  canvas {
+    margin-top: 2rem;
+    border: 1px solid #333;
+    width: 400px;
+    height: 400px;
+    display: block;
+  }
+  .outputs {
+    margin-top: 1rem;
+    font-size: 1.1rem;
+  }
+  .outputs span { display: inline-block; margin-right: 1.5rem; }
+</style> 
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [["$","$"]], displayMath: [["$$","$$"]] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+</head>
+<body>
+
+
+<h1>Estimating Pi</h1>
+
+<p class="description">
+  We estimate $\pi$ by dropping random points $P=(X,Y)$ with $X,Y \sim \mathrm{Uniform}(0,1)$. Define the distance to the origin as
+  $R = \sqrt{X^2 + Y^2}$. Let $n$ be the number of points with $R\le 1$ (inside the quarter circle) and $t$ the total number of points.
+  Then the estimator is
+  $$\hat{\pi} = \frac{n}{t} \cdot 4.$$
+</p>
+
+
+<div>
+  <label for="paramT">$t$:</label>
+  <input type="number" id="paramT" name="paramT" value="200">
+  <button id="startBtn">Start</button>
+  <button id="resetBtn">Reset</button>
+</div>
+
+<div class="outputs">
+  <span>$t_i$: <b id="outT">0</b></span>
+  <span>$n_i$: <b id="outN">0</b></span>
+  <span>$\hat{\pi}_i$: <b id="outPi">0</b></span>
+</div>
+
+<canvas id="c" width="400" height="400"></canvas>
+
+<script>
+(() => {
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const nInput = document.getElementById('paramT');
+const startBtn = document.getElementById('startBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+
+const outT = document.getElementById('outT');
+const outN = document.getElementById('outN');
+const outPi = document.getElementById('outPi');
+
+
+const size = Math.min(canvas.width, canvas.height);
+canvas.width = canvas.height = size;
+const r = size;
+
+
+function clear() {
+  ctx.clearRect(0,0,size,size);
+  drawQuarterCircle();
+}
+
+
+function drawQuarterCircle() {
+  ctx.save();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#222';
+  ctx.beginPath();
+  ctx.arc(0, r, r, -Math.PI/2, 0, false);
+  ctx.stroke();
+  ctx.restore();
+}
+
+
+function drawPoint(x, y, inside) {
+  ctx.save();
+  ctx.fillStyle = inside ? '#1a7f37' : '#c0342b';
+  ctx.beginPath();
+  ctx.arc(x, y, 2, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+
+function isInsideQuarterCircle(x, y) {
+  const dx = x;
+  const dy = y - r;
+  return (dx*dx + dy*dy) <= r*r;
+}
+
+
+let targetN = 0;
+let placed = 0;
+let insideCount = 0;
+let rafId = null;
+
+
+function updateOutputs() {
+  outT.textContent = placed;
+  outN.textContent = insideCount;
+  outPi.textContent = placed > 0 ? ((insideCount/placed)*4).toFixed(4) : '0';
+  // if (window.MathJax) MathJax.typesetPromise();
+}
+
+
+function step() {
+  if (placed >= targetN) { rafId = null; return; }
+  const x = Math.random() * size;
+  const y = Math.random() * size;
+  const inside = isInsideQuarterCircle(x, y);
+  drawPoint(x, y, inside);
+  placed++;
+  if (inside) insideCount++;
+  updateOutputs();
+  rafId = requestAnimationFrame(step);
+}
+
+
+function start() {
+  cancelAnimationFrame(rafId);
+  targetN = Math.max(0, Math.floor(Number(nInput.value) || 0));
+  step();
+}
+
+
+function reset() {
+  cancelAnimationFrame(rafId);
+  placed = 0; insideCount = 0; targetN = 0;
+  clear();
+  updateOutputs();
+}
+
+
+startBtn.addEventListener('click', start);
+resetBtn.addEventListener('click', reset);
+nInput.addEventListener('keydown', e=>{ if(e.key==='Enter') start(); });
+
+
+clear();
+updateOutputs();
+})();
+</script>
+
+</body>
+</html>
